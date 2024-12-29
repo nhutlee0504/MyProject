@@ -1,0 +1,180 @@
+﻿@page "/Admin/ThongKeDoanhThu"
+@layout AdminLayout
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<h3 class="text-center my-4 text-primary">Thống Kê Doanh Thu</h3>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+@if (isLoading)
+{
+    <div class="text-center">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-3">Đang xử lý...</p>
+    </div>
+}
+else if (totalRevenue == null)
+{
+    <div class="text-center">
+        <p class="mt-3">Không có dữ liệu doanh thu.</p>
+    </div>
+}
+else
+{
+    <div class="container-fluid">
+        <!-- Doanh thu tổng -->
+        <div class="row my-4 justify-content-center">
+
+            <!-- Nút Xuất Excel -->
+            <div class="text-center my-4">
+                <button class="btn btn-success" @onclick="ExportRevenueToExcel">
+                    <i class="fas fa-file-excel"></i> Xuất Thống Kê Doanh Thu
+                </button>
+            </div>
+
+            <div class="col-md-4 col-sm-6 mb-4">
+                <div class="card bg-success text-white shadow-lg border-0">
+                    <div class="card-body d-flex flex-column align-items-center text-center">
+                        <h5 class="card-title fw-bold">Tổng Doanh Thu</h5>
+                        <p class="card-text fs-3 fw-bold mb-0">@totalRevenue.Value.ToString("C")</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chọn khoảng thời gian -->
+        <div class="row my-4">
+            <div class="col-md-6 offset-md-3">
+                <h4 class="text-secondary mb-3">Chọn Thống Kê</h4>
+                <div class="input-group">
+                    <input type="date" class="form-control" id="datePicker" @bind="selectedDate" />
+                    <button class="btn btn-primary" @onclick="GetRevenueByDate">
+                        Xem Doanh Thu
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<script>
+    window.downloadFile = (fileName, contentType, content) => {
+        const blob = new Blob([content], { type: contentType });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+</script>
+
+
+@code {
+    private decimal? totalRevenue;
+    private List<Product> products;
+    private DateTime selectedDate;
+    private bool isLoading = false;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            totalRevenue = await Http.GetFromJsonAsync<decimal?>("api/product/GetTotalRevenue");
+            products = await Http.GetFromJsonAsync<List<Product>>("api/product/GetAllProduct");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Không thể tải dữ liệu. Vui lòng thử lại sau.";
+            Console.WriteLine($"Lỗi khi gọi API: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Lấy doanh thu theo ngày
+    private async Task GetRevenueByDate()
+    {
+        if (selectedDate != default(DateTime))
+        {
+            await GetRevenueByPeriod("Date", selectedDate.ToString("yyyy-MM-dd"));
+        }
+    }
+
+    // Gọi API để lấy doanh thu theo ngày/tháng/năm
+    private async Task GetRevenueByPeriod(string periodType, string periodValue)
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            // Gọi API và nhận doanh thu theo thời gian đã chọn
+            totalRevenue = await Http.GetFromJsonAsync<decimal?>($"api/product/GetRevenueBy{periodType}/{periodValue}");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi khi lấy dữ liệu doanh thu theo {periodType.ToLower()}";
+            Console.WriteLine($"Lỗi: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task ExportRevenueToExcel()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var response = await Http.GetAsync($"api/product/ExportRevenueToExcel/{selectedDate:yyyy-MM-dd}");
+            if (response.IsSuccessStatusCode)
+            {
+                var fileBytes = await response.Content.ReadAsByteArrayAsync();
+                var fileName = "ThongKeDoanhThu.xlsx";
+
+                // Gọi JavaScript để tải file
+                await JSRuntime.InvokeVoidAsync("downloadFile", fileName, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileBytes);
+            }
+            else
+            {
+                errorMessage = "Không thể xuất file Excel.";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Lỗi khi xuất file Excel: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+        public class Product
+        {
+            public int IDProduct { get; set; }
+            public string Name { get; set; }
+            public int Quantity { get; set; }
+            public decimal Price { get; set; }
+            public string Status { get; set; }
+        }
+}
+

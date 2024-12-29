@@ -1,0 +1,854 @@
+﻿@inherits LayoutComponentBase
+@inject HttpClient http
+@inject IJSRuntime jsruntime
+@inject NavigationManager NavigationManager
+<script src="/js/firebase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Roboto', sans-serif;
+    }
+
+    .navbar-nav .nav-link {
+        color: black;
+        text-decoration: none;
+        margin: 5px;
+        padding: 10px 15px;
+        transition: color 0.3s ease, background-color 0.3s ease;
+    }
+
+        .navbar-nav .nav-link:hover {
+            color: white;
+            background-color: green;
+            border-radius: 5px;
+        }
+
+    body {
+        font-family: Arial, sans-serif;
+    }
+
+
+    .logo img {
+        width: 50px;
+        height: auto;
+    }
+
+    .search-bar {
+        display: flex;
+        align-items: center;
+        border: 1px solid #ddd;
+        border-radius: 15px;
+        padding: 5px;
+        background-color: #f9f9f9;
+    }
+
+        .search-bar input {
+            border: none;
+            outline: none;
+            padding: 5px;
+        }
+
+        .search-bar button {
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+    .menu {
+        display: flex;
+        gap: 15px;
+    }
+
+        .menu a {
+            text-decoration: none;
+            color: black;
+            padding: 10px 15px;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+
+            .menu a:hover {
+                background-color: lightgray;
+            }
+
+    .auth-buttons {
+        display: flex;
+        gap: 10px;
+    }
+
+        .auth-buttons .register {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .auth-buttons .login {
+            background-color: #333;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .auth-buttons button:hover {
+            opacity: 0.8;
+        }
+
+    footer {
+        background-color: #ffffff;
+        padding: 20px 0;
+        border-top: 1px solid #ccc;
+    }
+
+    ul {
+        padding-left: 0;
+        margin: 0;
+    }
+
+        ul > li > a {
+            text-decoration: none;
+            color: black;
+        }
+
+        ul > li {
+            list-style: none;
+        }
+
+    .social-icons {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        gap: 10px;
+        padding-right: 150px;
+        padding-bottom: 90px;
+    }
+
+        .social-icons a {
+            color: #28a745;
+            top: 20px;
+        }
+
+    .navbar-toggler-icon {
+        background-image: url('/AnhGiaoDien/menu.png');
+    }
+
+    .page {
+        font-family: 'Playfair Display', serif;
+    }
+
+    .content {
+        font-family: 'Playfair Display', serif;
+    }
+
+    #scrollToTopBtn {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        z-index: 1000;
+        border-radius: 50%;
+        padding: 10px 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .user-dropdown {
+        margin-right: 15px;
+    }
+
+    .user-dropdown-toggle {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 25px;
+        height: 25px;
+        background: none;
+        border: none;
+        color: #333;
+        font-size: 1.8em;
+        padding: 0;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .dropdown-menu {
+        box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        padding: 15px 0;
+        min-width: 260px;
+    }
+
+    .user-info-card {
+        padding: 15px;
+        background-color: #f8f9fa;
+        border: none;
+        border-bottom: 1px solid #eaeaea;
+        border-radius: 8px 8px 0 0;
+        margin-bottom: 5px;
+    }
+
+    .user-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .user-info-card .card-title {
+        font-size: 1.1em;
+        font-weight: bold;
+        margin-bottom: 0.2rem;
+    }
+
+    .user-info-card .card-text {
+        font-size: 0.9em;
+        color: #666;
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 20px;
+        color: #333;
+        font-size: 1em;
+        transition: background-color 0.3s;
+    }
+
+        .dropdown-item:hover {
+            background-color: #f1f1f1;
+        }
+
+        .dropdown-item.text-danger {
+            color: #f44336;
+        }
+
+            .dropdown-item.text-danger:hover {
+                background-color: #ffe6e6;
+            }
+
+    .dropdown-divider {
+        margin: 10px 0;
+        border-top: 1px solid #eaeaea;
+    }
+
+    #depositButton {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+
+    #withdrawButton {
+        background-color: #ffc107;
+        border-color: #ffc107;
+    }
+
+    .btn-register {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        font-weight: 500;
+        padding: 8px 16px;
+        color: #4caf50;
+        background-color: transparent;
+        border: 2px solid #4caf50;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+        .btn-register:hover {
+            background-color: #4caf50;
+            color: #fff;
+            border-color: #4caf50;
+        }
+
+    .btn-login {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        font-weight: 500;
+        padding: 8px 16px;
+        color: #333;
+        background-color: transparent;
+        border: 2px solid #333;
+        border-radius: 5px;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+    }
+
+        .btn-login:hover {
+            background-color: #333;
+            color: #fff;
+            border-color: #333;
+        }
+
+        .btn-register i,
+        .btn-login i {
+            margin-right: 6px;
+            font-size: 1rem;
+        }
+
+    .btn-register + .btn-login {
+        margin-left: 8px;
+    }
+
+    .btn-no-border {
+        border: none;
+        background: none;
+        padding: 0;
+        color: inherit;
+        cursor: pointer;
+    }
+
+    .nav-link.active {
+        position: relative;
+        color: #15ba6d; /* Màu xanh lá cây */
+    }
+
+        .nav-link.active i {
+            color: #15ba6d; /* Đổi màu icon */
+        }
+
+        .nav-link.active::after {
+            content: "";
+            position: absolute;
+            bottom: -5px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: #15ba6d; /* Gạch chân màu xanh lá */
+            border-radius: 2px;
+        }
+    /* CSS cho tooltip */
+    .nav-link {
+        position: relative;
+        display: inline-block;
+    }
+
+    .tooltip-text {
+        visibility: hidden;
+        width: 100px;
+        background-color: green;
+        color: #fff;
+        text-align: center;
+        border-radius: 5px;
+        padding: 5px;
+        position: absolute;
+        top: 100%; /* Hiển thị phía dưới */
+        left: 50%;
+        margin-left: -50px; /* Căn giữa tooltip */
+        opacity: 0;
+        transition: opacity 0.3s;
+        z-index: 1;
+        font-size: 12px;
+        margin-top: 12px;
+    }
+
+    .nav-link:hover .tooltip-text {
+        visibility: visible;
+        opacity: 1;
+    }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        background-color: white;
+        border-radius: 30px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Đổ bóng nhẹ */
+        padding: 5px 15px;
+        margin-left: 20px;
+        width: 100%; /* Để cho phép ô tìm kiếm tự động co giãn */
+        max-width: 500px; /* Giới hạn chiều rộng tối đa nếu cần */
+    }
+
+    .search-input {
+        border: none;
+        outline: none;
+        font-size: 16px;
+        color: #28a745; /* Chữ xanh lá */
+        background-color: transparent;
+        flex-grow: 1; /* Lấp đầy không gian còn lại */
+        padding: 8px;
+        border-radius: 25px;
+        width: 100%; /* Đảm bảo ô input chiếm hết chiều rộng container */
+    }
+
+    .search-btn {
+        background-color: transparent;
+        border: none;
+        color: #28a745; /* Chữ xanh lá */
+        font-size: 18px;
+        cursor: pointer;
+    }
+
+        .search-btn:hover {
+            color: #218838; /* Màu xanh lá đậm khi hover */
+        }
+
+    .search-input::placeholder {
+        color: #28a745; /* Màu xanh lá cho placeholder */
+    }
+
+    .btn-user {
+        text-decoration: none; /* Loại bỏ gạch chân */
+        border: none; /* Loại bỏ viền */
+        color: #000; /* Màu chữ */
+        font-size: 16px; /* Kích thước chữ */
+        display: inline-flex; /* Canh giữa icon và text */
+        align-items: center;
+        gap: 5px; /* Khoảng cách giữa icon và text */
+    }
+
+        .btn-user:hover {
+            color: green; /* Màu khi hover */
+            text-decoration: underline; /* Gạch chân khi hover */
+        }
+</style>
+<div class="page">
+    <div class="main">
+        @*Header*@
+
+        <header>
+            <!-- Navbar desktop -->
+            <div class="navbar-desktop">
+                <div class="container-fluid" style="padding-left: 0px;">
+                    <nav class="navbar navbar-expand-lg sticky-top shadow rounded" style="position: fixed; width: 100%; padding: 5px 10px;">
+                        <div class="row align-items-center w-100">
+                            <!-- Logo -->
+                            <div class="col-md-4 d-flex justify-content-start">
+                                <div class="logo">
+                                    <a href="#"><img class="rounded-circle" src="/AnhGiaoDien/Logo.jpg" alt="Logo" style="max-width: 100px;"></a>
+                                </div>
+                                <div class="search-box">
+                                    <input type="text" class="search-input" placeholder="Tìm kiếm...">
+                                    <button class="search-btn"><i class="bi bi-search"></i></button>
+                                </div>
+                            </div>
+
+
+                            <!-- Menu điều hướng -->
+                            <div class="col-md-4 d-flex justify-content-center">
+                                <ul class="navbar-nav flex-row align-items-center">
+                                    <li class="nav-item mx-2">
+                                        <a class="nav-link text-center" href="#">
+                                            <i class="bi bi-house fs-5"></i>
+                                            <span class="tooltip-text">Trang chủ</span>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item mx-2">
+                                        <a class="nav-link text-center" href="sanpham">
+                                            <i class="bi bi-shop fs-5"></i>
+                                            <span class="tooltip-text">Sản phẩm</span>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item mx-2">
+                                        <a class="nav-link text-center" href="/PageGioHang">
+                                            <i class="bi bi-basket fs-5"></i>
+                                            <span class="tooltip-text">Giỏ hàng</span>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item mx-2">
+                                        <a class="nav-link text-center" href="bill">
+                                            <i class="bi bi-receipt fs-5"></i>
+                                            <span class="tooltip-text">Hóa đơn</span>
+                                        </a>
+                                    </li>
+                                    <li class="nav-item mx-2">
+                                        <a class="nav-link text-center" href="nhantin">
+                                            <i class="bi bi-chat-dots fs-5"></i>
+                                            <span class="tooltip-text">Nhắn tin</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+
+
+                            <!-- Auth buttons -->
+                            <div class="col-md-4 d-flex justify-content-end">
+                                @if (isLoading)
+                                {
+                                    <span>Loading...</span>
+                                }
+                                else if (!IsLoggedIn)
+                                {
+                                    <div>
+                                        <a href="login" class="btn btn-link btn-user">
+                                            <i class="fas fa-user"></i> Đăng nhập / Đăng ký
+                                        </a>
+                                    </div>
+
+                                }
+                                else
+                                {
+                                    <div class="dropdown user-dropdown">
+                                        <a class="user-dropdown-toggle" href="#" role="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                            @if (accountInfo.ImageAccount == null)
+                                            {
+                                                <i class="fas fa-user-circle"></i>
+
+                                            }
+                                            else
+                                            {
+                                                <img src="@accountInfo.ImageAccount" alt="User Avatar" class="rounded-circle me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                            }
+                                        </a>
+                                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                            <li>
+                                                <div class="card user-info-card">
+                                                    <div class="row g-0 align-items-center">
+                                                        <div class="col">
+                                                            <div class="card-body py-2">
+                                                                <h6 class="card-title mb-1">@accountInfo.FullName</h6>
+                                                                <p class="card-text">
+                                                                    <small class="text-muted">
+                                                                        Ví của bạn:
+                                                                        @String.Format("{0:N0} VND", accountInfo.PreSystem)
+                                                                    </small>
+                                                                </p>
+                                                                <div class="d-flex justify-content-between mt-3">
+                                                                    <a href="/vnpay/naptien" class="btn btn-success text-white btn-sm" id="depositButton">
+                                                                        <i class="fas fa-arrow-circle-up"></i> Nạp tiền
+                                                                    </a>
+                                                                    <button class="btn btn-warning text-white btn-sm" id="withdrawButton">
+                                                                        <i class="fas fa-arrow-circle-down"></i> Rút tiền
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><a class="dropdown-item" href="/post"><i class="fas fa-plus-circle"></i> Đăng sản phẩm</a></li>
+                                            <li><a class="dropdown-item" href="/ThongTinNguoiDung/@accountInfo.UserName"><i class="fas fa-user"></i> Thông tin tài khoản</a></li>
+                                            <li><a class="dropdown-item" href="/changePass"><i class="fas fa-key"></i> Đổi mật khẩu</a></li>
+                                            <li><a class="dropdown-item" href="/lichsunaptien"><i class="fas fa-history"></i> Lịch sử nạp tiền</a></li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li><button class="btn text-danger ms-2" @onclick="Logout"><i class="fas fa-sign-out-alt"></i> Đăng xuất</button></li>
+                                        </ul>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+            <!-- Navbar mobile -->
+            <div class="navbar-mobile d-lg-none">
+                <div class="menu">
+                    <a href="#" class="menu-item">
+                        <i class="bi bi-house"></i>
+                        <span>Trang chủ</span>
+                    </a>
+                    <a href="sanpham" class="menu-item">
+                        <i class="bi bi-box-seam"></i>
+                        <span>Sản phẩm</span>
+                    </a>
+                    <a href="/PageGioHang" class="menu-item">
+                        <i class="bi bi-basket"></i>
+                        <span>Giỏ hàng</span>
+                    </a>
+                    <a href="nhantin" class="menu-item">
+                        <i class="bi bi-chat-dots"></i>
+                        <span>Nhắn tin</span>
+                    </a>
+                    <a class="menu-item">
+                        <div class="btn-group dropup">
+                            <a class="dropdown-toggle" href="#" style="padding:0;margin-bottom:7px;margin-top:2px;" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                @if (IsLoggedIn && accountInfo.ImageAccount != null)
+                                {
+                                    <img src="@accountInfo.ImageAccount" alt="Avatar"
+                                         class="rounded-circle me-3" style="width: 30px; height: 30px; object-fit: cover;">
+                                }
+                                else
+                                {
+                                    <i class="fas fa-user-circle fa-2x"></i>
+                                }
+                            </a>
+
+                            <ul class="dropdown-menu" aria-labelledby="userDropdown">
+                                @if (isLoading)
+                                {
+                                    <span>Loading...</span>
+                                }
+                                else if (!IsLoggedIn)
+                                {
+                                    <li>
+                                        <a class="custom-dropdown-item" href="/register">
+                                            <i class="fas fa-user-plus"></i> Đăng ký
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="custom-dropdown-item" href="/login">
+                                            <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                                        </a>
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li>
+                                        <div class="custom-card custom-user-info-card">
+                                            <div class="custom-card-body py-2">
+                                                <h6 class="custom-card-title mb-1">@accountInfo.FullName</h6>
+                                                <p class="custom-card-text">
+                                                    <small class="text-muted">
+                                                        Ví của bạn: @String.Format("{0:N0} VND", accountInfo.PreSystem)
+                                                    </small>
+                                                </p>
+                                                <div class="d-flex justify-content-between mt-3">
+                                                    <a href="/vnpay/naptien" class="btn btn-success text-white btn-sm">
+                                                        <i class="fas fa-arrow-circle-up"></i> Nạp tiền
+                                                    </a>
+                                                    <button class="btn btn-warning text-white btn-sm">
+                                                        <i class="fas fa-arrow-circle-down"></i> Rút tiền
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+                                        <a class="custom-dropdown-item" href="/post">
+                                            <i class="fas fa-plus-circle"></i> Đăng sản phẩm
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="custom-dropdown-item" @onclick="() => NavigateToProductDetail(accountInfo.UserName)">
+                                            <i class="fas fa-user"></i> Thông tin tài khoản
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="custom-dropdown-item" href="/changePass">
+                                            <i class="fas fa-key"></i> Đổi mật khẩu
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="custom-dropdown-item" href="/lichsunaptien">
+                                            <i class="fas fa-history"></i> Lịch sử nạp tiền
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <hr class="dropdown-divider">
+                                    </li>
+                                    <li>
+
+                                        <button class="btn-no-border text-danger ms-3 custom-dropdown-item" @onclick="Logout">
+                                            <i class="fas fa-sign-out-alt"></i> Đăng xuất
+                                        </button>
+
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                        <span>Người dùng</span>
+                    </a>
+                </div>
+            </div>
+        </header>
+        <div class="content" ng-app="app">
+            @Body
+        </div>
+        @*Footer*@
+        <button id="scrollToTopBtn" class="btn btn-primary" style="display: none;">
+            <i class="fas fa-arrow-up"></i> Quay lên
+        </button>
+        <footer>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="group-item text-center">
+                            <a href="#"><i class="fab fa-facebook-square text-success" style="font-size:36px"></i></a>
+                            <a href="#"><i class="fab fa-instagram text-success" style="font-size:36px"></i></a>
+                            <a href="#"><i class="fab fa-youtube text-success" style="font-size:36px"></i></a>
+                            <a href="#"><i class="fab fa-linkedin text-success" style="font-size:36px"></i></a>
+
+                        </div>
+                    </div>
+
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <!-- Footer Section 1 -->
+                                <h5 style="font-weight:bolder">Trung tâm hỗ trợ khách hàng</h5>
+                                <ul>
+                                    <li><a href="#">Quy tắc an toàn mua bán</a></li>
+                                    <li><a href="#">Các câu hỏi thường gặp</a></li>
+                                    <li><a href="#">Q&A</a></li>
+                                    <li><a href="#">Liên hệ hỗ trợ</a></li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+
+                                <!-- Footer Section 2 -->
+                                <h5 style="font-weight:bolder">Về BrothersHood</h5>
+                                <ul>
+                                    <li><a href="#">Giới thiệu</a></li>
+                                    <li><a href="#">Đánh giá bảo mật</a></li>
+                                    <li><a href="#">Giải quyết tranh chấp</a></li>
+                                    <li><a href="#">Tuyển dụng</a></li>
+                                    <li><a href="#">Truyền thông</a></li>
+                                </ul>
+                            </div>
+                            <div class="col-md-4">
+                                <!-- Footer Section 3 -->
+                                <h5 style="font-weight:bolder">Resources</h5>
+                                <ul>
+                                    <li><a href="#">API</a></li>
+                                    <li><a href="#">AI API</a></li>
+                                    <li><a href="#">Source Web</a></li>
+                                    <li><a href="#">Dev tool</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+
+
+
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+
+</div>
+@code {
+    private bool isLoading = true;
+    private string errorMessage;
+    private AccountInfoDto accountInfo;
+    private bool IsLoggedIn { get; set; } = false; // Biến để theo dõi trạng thái đăng nhập
+    private string searchQuery;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CheckTokenAndLoadAccountInfo();
+    }
+
+    private void OnSearchClick()
+    {
+        if (!string.IsNullOrWhiteSpace(searchQuery))
+        {
+            // Điều hướng đến trang sản phẩm với tham số tìm kiếm
+            NavigationManager.NavigateTo($"/sanpham?search={searchQuery}");
+        }
+        else
+        {
+            // Nếu không có từ khóa, chuyển đến trang sản phẩm không có tham số tìm kiếm
+            NavigationManager.NavigateTo("/sanpham");
+        }
+    }
+
+    private async Task CheckTokenAndLoadAccountInfo()
+    {
+        var token = await jsruntime.InvokeAsync<string>("localStorage.getItem", "token");
+
+        if (!string.IsNullOrEmpty(token))
+        {
+            // Thiết lập token cho yêu cầu HTTP
+            http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            await LoadAccountInfo();
+        }
+        else
+        {
+            isLoading = false; // Không cần tải thông tin tài khoản
+        }
+    }
+
+    private async Task LoadAccountInfo()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var response = await http.GetAsync("api/User/GetMyInfo");
+
+            if (response.IsSuccessStatusCode)
+            {
+                accountInfo = await response.Content.ReadFromJsonAsync<AccountInfoDto>();
+
+                // Kiểm tra điều kiện TimeBan và IsDelete
+                if (accountInfo.TimeBan > DateTime.Now || accountInfo.IsDelete)
+                {
+                    // Nếu bị ban hoặc tài khoản bị xóa, thực hiện logout
+                    await Logout();
+                    return;
+                }
+
+                IsLoggedIn = true; // Đánh dấu là người dùng đã đăng nhập
+            }
+            else
+            {
+                errorMessage = await response.Content.ReadAsStringAsync();
+                IsLoggedIn = false; // Đánh dấu là người dùng chưa đăng nhập
+                await Logout();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Có lỗi xảy ra: " + ex.Message;
+            IsLoggedIn = false; // Đánh dấu là người dùng chưa đăng nhập
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+
+    private class AccountInfoDto
+    {
+        public string UserName { get; set; }
+        public decimal PreSystem { get; set; }
+        public string FullName { get; set; }
+        public string PhoneNumber { get; set; }
+        public string Gender { get; set; }
+        public DateTime? Birthday { get; set; }
+        public bool IsDelete { get; set; }
+        public DateTime TimeBan { get; set; }
+        public string ImageAccount { get; set; }
+    }
+
+    private async Task Logout()
+    {
+        // Xóa token khỏi local storage và cập nhật trạng thái
+        await jsruntime.InvokeVoidAsync("localStorage.removeItem", "token");
+        IsLoggedIn = false;
+        accountInfo = null; // Đặt lại thông tin tài khoản
+        NavigationManager.NavigateTo("/", forceLoad: true);
+    }
+
+    private void NavigateToProductDetail(string userName)
+    {
+        NavigationManager.NavigateTo($"/ThongTinNguoiDung/{userName}", forceLoad: true);
+    }
+}
+<script>
+    const dropdownToggle = document.getElementById('userDropdown');
+    if (dropdownToggle) {
+        dropdownToggle.addEventListener('click', function () {
+            const dropdownMenu = document.getElementById('mobileDropdown');
+            if (dropdownMenu) {
+                dropdownMenu.classList.toggle('show');
+            }
+        });
+    }
+
+
+</script>
